@@ -14,11 +14,17 @@ namespace ThmTool
             CommandLineApplication.Execute<Program>(args);
         }
 
-        [Option(ShortName = "p")]
+        [Option(ShortName = "source")]
         public string SourcePath { get; set; }
 
+        [Option(ShortName = "pack")]
+        public bool Pack { get; set; }
+
+        [Option(ShortName = "unpack")]
+        public bool Unpack { get; set; }
+
         [Option(ShortName = "m")]
-        public string Mode { get; set; }
+        public int Mode { get; set; }
 
         private void OnExecute()
         {
@@ -33,21 +39,32 @@ namespace ThmTool
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(Mode))
+            if (!Pack && !Unpack)
             {
-                Mode = "unpack";
+                Unpack = true;
             }
 
-            var jsonSerializerSettings = new JsonSerializerSettings
+            var jsonSerializerSettings = new JsonSerializerSettings();
+
+            if (Mode == 0)
             {
-                Converters = new List<JsonConverter>
+                // bin mode
+            }
+            else if (Mode == 1)
+            {
+                // name mode
+                jsonSerializerSettings.Converters = new List<JsonConverter>
                 {
                     new StringEnumConverter()
-                }
-            };
+                };
+            }
 
-            if (Mode == "pack")
+            Console.WriteLine($"Working directory: {SourcePath}.");
+
+            if (Pack)
             {
+                Console.WriteLine("Packing mode...");
+
                 var adapter = new ThmAdapter();
 
                 foreach (string jsonFile in Directory.GetFiles(SourcePath, "*.thm.json"))
@@ -56,13 +73,17 @@ namespace ThmTool
 
                     string thmFile = Path.GetDirectoryName(jsonFile);
 
-                    thmFile = Path.Combine(thmFile, Path.GetFileNameWithoutExtension(jsonFile).Replace(".thm", "_new.thm"));
+                    thmFile = Path.Combine(thmFile ?? throw new InvalidOperationException(), Path.GetFileNameWithoutExtension(jsonFile).Replace(".thm", "_new.thm"));
+
+                    Console.WriteLine($"Packing {Path.GetFileName(jsonFile)} to {Path.GetFileName(thmFile)}");
 
                     adapter.Save(thm, thmFile);
                 }
             }
-            else if (Mode == "unpack")
+            else if (Unpack)
             {
+                Console.WriteLine("Unpacking mode...");
+
                 var adapter = new ThmAdapter();
 
                 foreach (string thmFile in Directory.GetFiles(SourcePath, "*.thm"))
@@ -83,13 +104,17 @@ namespace ThmTool
                         File.Delete(jsonFile);
                     }
 
+                    Console.WriteLine($"Unpacking {Path.GetFileName(thmFile)} to {Path.GetFileName(jsonFile)}");
+
                     File.WriteAllText(jsonFile, content);
                 }
             }
             else
             {
-                Console.WriteLine($"Unknown mode {Mode}!");
+                Console.WriteLine($"Unknown work mode!");
             }
+
+            Console.WriteLine("DONE!");
         }
     }
 }
