@@ -20,8 +20,14 @@ namespace ThmTool
         [Option(ShortName = "pack")]
         public bool Pack { get; set; }
 
+        [Option(ShortName = "overwrite")]
+        public bool Overwrite { get; set; }
+
         [Option(ShortName = "unpack")]
         public bool Unpack { get; set; }
+
+        [Option(ShortName = "cop2soc")]
+        public bool Cop2Soc { get; set; }
 
         [Option(ShortName = "m")]
         public int Mode { get; set; }
@@ -69,11 +75,28 @@ namespace ThmTool
 
                 foreach (string jsonFile in Directory.GetFiles(SourcePath, "*.thm.json"))
                 {
+                    Console.WriteLine($"Reading {Path.GetFileName(jsonFile)}...");
+
                     ThmAdapter.ETextureParams thm = JsonConvert.DeserializeObject<ThmAdapter.ETextureParams>(File.ReadAllText(jsonFile), jsonSerializerSettings);
 
                     string thmFile = Path.GetDirectoryName(jsonFile);
+                    var originalFileName = Path.GetFileNameWithoutExtension(jsonFile);
 
-                    thmFile = Path.Combine(thmFile ?? throw new InvalidOperationException(), Path.GetFileNameWithoutExtension(jsonFile).Replace(".thm", "_new.thm"));
+                    if (!Overwrite)
+                    {
+                        originalFileName = originalFileName.Replace(".thm", "_new.thm");
+                    }
+
+                    thmFile = Path.Combine(thmFile ?? throw new InvalidOperationException(), originalFileName);
+
+                    if (Overwrite)
+                    {
+                        if (File.Exists(thmFile))
+                        {
+                            File.SetAttributes(thmFile, FileAttributes.Archive);
+                            File.Delete(thmFile);
+                        }
+                    }
 
                     Console.WriteLine($"Packing {Path.GetFileName(jsonFile)} to {Path.GetFileName(thmFile)}");
 
@@ -94,6 +117,15 @@ namespace ThmTool
                     {
                         Console.WriteLine($"Cannot read {thmFile}, probably empty file! Skip.");
                         continue;
+                    }
+
+                    if (Cop2Soc)
+                    {
+                        ThmAdapter.ETFormat fmt = thm.fmt;
+                        ThmAdapter.ETType type = thm.type;
+
+                        thm.fmt = (ThmAdapter.ETFormat) type;
+                        thm.type = (ThmAdapter.ETType) fmt;
                     }
 
                     string content = JsonConvert.SerializeObject(thm, Formatting.Indented, jsonSerializerSettings);
