@@ -6,7 +6,11 @@ Command line arguments:
 
 `-unpack` - unpack mode, that is default work mode. Will unpack all files by mask *.thm
 
+`-cop2soc` - work only in `-unpack` mode, will convert COP format to SHOC on fly
+
 `-pack` - pack mode. Will pack all files by mask *.thm.json
+
+`-overwrite` - work only in `-pack` mode, will override existing thm files
 
 `-source <path>` - set working directory, default: current directory
 
